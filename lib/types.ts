@@ -1,0 +1,158 @@
+export type UserRole = "admin" | "recruiter" | "candidate"
+
+export interface User {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+}
+
+export interface Job {
+  id: string
+  title: string
+  company: string
+  location: string
+  type: "Full-time" | "Part-time" | "Contract" | "Internship"
+  salary: string
+  description: string
+  requirements: string[]
+  responsibilities: string[]
+  status: "Open" | "Closed" | "Draft" | "PendingApproval" | "Rejected"
+  postedDate: string
+  applicants: string[] // Array of candidate IDs
+}
+
+export interface Candidate {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  status: "New" | "Reviewed" | "AI Screening" | "Interviewing" | "Offered" | "Hired" | "Rejected"
+  skills: string[]
+  experience: {
+    title: string
+    company: string
+    years: number
+    description?: string
+  }[]
+  education: {
+    degree: string
+    institution: string
+    year: number
+  }[]
+  notes?: string
+  appliedJobs: { jobId: string; matchScore: number }[] // New structure
+  offers?: string[] // Array of job IDs for which the candidate has offers
+}
+
+export interface Interview {
+  id: string
+  candidateId: string
+  jobId: string
+  date: string
+  time: string
+  interviewer: string
+  status: "Scheduled" | "Completed" | "Canceled"
+  feedback?: string
+  score?: number
+  type?: "virtual" | "ai"
+}
+
+export interface Offer {
+  id: string
+  candidateId: string
+  jobId: string
+  salary: string
+  benefits: string[]
+  status: "Pending" | "Accepted" | "Rejected" | "Withdrawn"
+  offerDate: string
+  expirationDate: string
+}
+
+export interface Application {
+  firstName: string,
+  lastName: string,
+  id: number;
+  jobId: number;
+  userId: number;
+  status: string;
+  resume: string;
+  coverLetter: string;
+  createdBy: number;
+  createdDate: string | null;
+  modifiedBy: number | null;
+  modifiedDate: string | null;
+  mobile: string;
+}
+
+export interface UserRoleApi {
+  userId: number;
+  roleId: number;
+  roleName: string;
+  isActive: boolean;
+}
+
+export interface UserApi {
+  userId: number;
+  roleId: number;
+  roleList: UserRoleApi[];
+  userName: string;
+  firstName: string;
+  lastName: string;
+  mobile: string;
+  email: string;
+  dob: string;
+  password: string;
+  address: string;
+  city: string;
+  flag: string;
+  state: string;
+  pinCode: string;
+  userType: string;
+  userStatus: string;
+  panCardNo: string;
+  filePath: string;
+  isActive: boolean;
+  createdBy: number;
+  skills?: string; // Add skills as optional
+  role?: string;
+}
+
+export interface AuthRequest {
+  mobileOrEmail: string;
+  password: string;
+  verificationCode: string;
+  isResendOTP: boolean;
+}
+
+export interface AuthResponse {
+  code: number;
+  msg: string;
+  data: UserApi | null;
+}
+
+// Candidate Pipeline API response type (update as needed)
+export interface CandidatePipelineResponse {
+  name: string;
+  email: string;
+  phone: string;
+  linkedIn: string | null;
+  location: string;
+  currentTitle: string;
+  company: string;
+  experienceYears: number;
+  education: string[];
+  certifications: string[];
+  skills: string[];
+  skillGap: string[];
+  strengths: string[];
+  weaknesses: string[];
+  careerGap: string[];
+  noticePeriod: string | null;
+  score: number;
+  fakenessIndicators: string[];
+  aiFit: {
+    fit: string;
+    reason: string;
+  };
+}

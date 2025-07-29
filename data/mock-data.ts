@@ -1,0 +1,272 @@
+import type { Job, Candidate, Interview, Offer, User } from "@/lib/types"
+
+export const mockUsers: User[] = [
+  { id: "user1", email: "admin@example.com", name: "Admin User", role: "admin" },
+  { id: "user2", email: "recruiter@example.com", name: "Recruiter Jane", role: "recruiter" },
+  { id: "user3", email: "candidate@example.com", name: "Candidate John", role: "candidate" },
+]
+
+export const mockJobs: Job[] = [
+  {
+    id: "job1",
+    title: "Software Engineer",
+    company: "Tech Solutions Inc.",
+    location: "San Francisco, CA",
+    type: "Full-time",
+    salary: "$120,000 - $150,000",
+    description:
+      "We are looking for a skilled Software Engineer to join our dynamic team. You will be responsible for developing and maintaining high-quality software solutions.",
+    requirements: [
+      "Bachelor's degree in Computer Science or related field",
+      "3+ years of experience with React, Node.js, and TypeScript",
+      "Strong understanding of data structures and algorithms",
+      "Experience with cloud platforms (AWS, Azure, GCP)",
+    ],
+    responsibilities: [
+      "Design, develop, and deploy software applications",
+      "Collaborate with cross-functional teams",
+      "Write clean, maintainable, and efficient code",
+      "Participate in code reviews and provide constructive feedback",
+    ],
+    status: "Open",
+    postedDate: "2023-01-15",
+    applicants: ["candidate1", "candidate3"],
+  },
+  {
+    id: "job2",
+    title: "Product Manager",
+    company: "Innovate Corp.",
+    location: "New York, NY",
+    type: "Full-time",
+    salary: "$100,000 - $130,000",
+    description:
+      "Seeking an experienced Product Manager to lead our product development efforts. You will define product vision, strategy, and roadmap.",
+    requirements: [
+      "Bachelor's degree in Business, Marketing, or related field",
+      "5+ years of product management experience",
+      "Strong analytical and problem-solving skills",
+      "Excellent communication and leadership abilities",
+    ],
+    responsibilities: [
+      "Define and communicate product vision and strategy",
+      "Conduct market research and competitive analysis",
+      "Work closely with engineering, design, and marketing teams",
+      "Manage product backlog and prioritize features",
+    ],
+    status: "Open",
+    postedDate: "2023-02-01",
+    applicants: ["candidate2"],
+  },
+  {
+    id: "job3",
+    title: "UX Designer",
+    company: "Creative Agency",
+    location: "Remote",
+    type: "Contract",
+    salary: "$70 - $90/hour",
+    description:
+      "Freelance UX Designer needed to create intuitive and engaging user experiences for various client projects.",
+    requirements: [
+      "Portfolio showcasing strong UX design skills",
+      "Proficiency in Figma, Sketch, or Adobe XD",
+      "Experience with user research and usability testing",
+      "Ability to work independently and meet deadlines",
+    ],
+    responsibilities: [
+      "Conduct user research and create user personas",
+      "Develop wireframes, prototypes, and mockups",
+      "Collaborate with developers to ensure design implementation",
+      "Present design concepts to clients and stakeholders",
+    ],
+    status: "Closed",
+    postedDate: "2023-01-20",
+    applicants: [],
+  },
+  {
+    id: "job4",
+    title: "Data Scientist",
+    company: "Data Insights LLC",
+    location: "Boston, MA",
+    type: "Full-time",
+    salary: "$130,000 - $160,000",
+    description:
+      "Join our data science team to analyze complex datasets, build predictive models, and derive actionable insights.",
+    requirements: [
+      "Master's or Ph.D. in a quantitative field (Statistics, Computer Science, Mathematics)",
+      "3+ years of experience with Python/R and SQL",
+      "Strong knowledge of machine learning algorithms",
+      "Experience with big data technologies (Spark, Hadoop)",
+    ],
+    responsibilities: [
+      "Develop and implement machine learning models",
+      "Perform exploratory data analysis and visualization",
+      "Communicate findings to technical and non-technical audiences",
+      "Collaborate with engineering teams to deploy models",
+    ],
+    status: "Open",
+    postedDate: "2023-03-10",
+    applicants: ["candidate4"],
+  },
+]
+
+export const mockCandidates: Candidate[] = [
+  {
+    id: "1",
+    name: "Alice Johnson",
+    email: "alice.j@example.com",
+    phone: "555-111-2222",
+    status: "Interviewing",
+    skills: ["React", "Node.js", "TypeScript", "AWS", "GraphQL"],
+    experience: [
+      {
+        title: "Software Developer",
+        company: "WebWorks Co.",
+        years: 4,
+        description: "Developed and maintained web applications using React and Node.js.",
+      },
+    ],
+    education: [{ degree: "B.S. Computer Science", institution: "State University", year: 2019 }],
+    appliedJobs: [{ jobId: "job1", matchScore: 85 }],
+  },
+  {
+    id: "candidate2",
+    name: "Bob Williams",
+    email: "bob.w@example.com",
+    phone: "555-333-4444",
+    status: "New",
+    skills: ["Product Strategy", "Market Research", "Agile", "SaaS"],
+    experience: [
+      {
+        title: "Associate Product Manager",
+        company: "Global Tech",
+        years: 3,
+        description: "Assisted in product roadmap development and feature prioritization.",
+      },
+    ],
+    education: [{ degree: "B.A. Business Administration", institution: "City College", year: 2020 }],
+    appliedJobs: [{ jobId: "job2", matchScore: 78 }],
+  },
+  {
+    id: "candidate3",
+    name: "Charlie Brown",
+    email: "charlie.b@example.com",
+    phone: "555-555-6666",
+    status: "Offered",
+    skills: ["Python", "Machine Learning", "SQL", "Data Visualization", "TensorFlow"],
+    experience: [
+      {
+        title: "Junior Data Scientist",
+        company: "Analytics Hub",
+        years: 2,
+        description: "Built predictive models and analyzed large datasets.",
+      },
+    ],
+    education: [{ degree: "M.S. Data Science", institution: "Tech Institute", year: 2022 }],
+    appliedJobs: [
+      { jobId: "job1", matchScore: 70 },
+      { jobId: "job4", matchScore: 92 },
+    ],
+    offers: ["job4"]
+  },
+  {
+    id: "candidate4",
+    name: "Diana Prince",
+    email: "diana.p@example.com",
+    phone: "555-777-8888",
+    status: "AI Screening",
+    skills: ["UX Design", "Figma", "User Research", "Prototyping"],
+    experience: [
+      {
+        title: "UI/UX Intern",
+        company: "Design Studio",
+        years: 1,
+        description: "Assisted in creating user interfaces and conducting usability tests.",
+      },
+    ],
+    education: [{ degree: "B.F.A. Graphic Design", institution: "Art Academy", year: 2023 }],
+    appliedJobs: [{ jobId: "job4", matchScore: 65 }],
+  },
+  {
+    id: "user3", // This candidate is also a user
+    name: "Candidate John",
+    email: "candidate@example.com",
+    phone: "555-999-0000",
+    status: "New",
+    skills: ["JavaScript", "HTML", "CSS", "Web Development"],
+    experience: [
+      {
+        title: "Junior Web Developer",
+        company: "Startup Co.",
+        years: 1,
+        description: "Developed front-end components for various web projects.",
+      },
+    ],
+    education: [{ degree: "Associate Degree in Web Dev", institution: "Community College", year: 2023 }],
+    appliedJobs: [{ jobId: "job1", matchScore: 60 }],
+    offers: ["job1", "job2"]
+  },
+]
+
+export const mockInterviews: Interview[] = [
+  {
+    id: "int1",
+    candidateId: "candidate1",
+    jobId: "job1",
+    date: "2024-07-20",
+    time: "10:00 AM",
+    interviewer: "Recruiter Jane",
+    status: "Scheduled",
+    feedback: "",
+    score: undefined,
+    type: "virtual"
+  },
+  {
+    id: "int2",
+    candidateId: "candidate2",
+    jobId: "job2",
+    date: "2024-07-18",
+    time: "02:00 PM",
+    interviewer: "Hiring Manager Mike",
+    status: "Completed",
+    feedback: "Good communication skills, strong product sense.",
+    score: 4,
+    type: "virtual"
+  },
+  {
+    id: "int3",
+    candidateId: "candidate3",
+    jobId: "job4",
+    date: "2024-07-25",
+    time: "11:00 AM",
+    interviewer: "Lead Data Scientist",
+    status: "Scheduled",
+    feedback: "",
+    score: undefined,
+    type: "ai"
+  },
+  {
+    id: "int4",
+    candidateId: "user3",
+    jobId: "job1",
+    date: "2024-07-22",
+    time: "03:00 PM",
+    interviewer: "Recruiter Jane",
+    status: "Scheduled",
+    feedback: "",
+    score: undefined,
+    type: "ai"
+  },
+]
+
+export const mockOffers: Offer[] = [
+  {
+    id: "offer1",
+    candidateId: "candidate3",
+    jobId: "job4",
+    salary: "$145,000",
+    benefits: ["Health Insurance", "401K Match", "Unlimited PTO"],
+    status: "Pending",
+    offerDate: "2024-07-10",
+    expirationDate: "2024-07-24",
+  },
+]
