@@ -20,12 +20,13 @@ export interface Job {
   status: "Open" | "Closed" | "Draft" | "PendingApproval" | "Rejected"
   postedDate: string
   applicants: string[] // Array of candidate IDs
+  applicationStatus?: string[] // Array of application statuses from API
 }
 
 export interface Candidate {
   id: string
   name: string
-  email: string
+  applicationEmail: string
   phone?: string
   status: "New" | "Reviewed" | "AI Screening" | "Interviewing" | "Offered" | "Hired" | "Rejected"
   skills: string[]
@@ -41,7 +42,7 @@ export interface Candidate {
     year: number
   }[]
   notes?: string
-  appliedJobs: { jobId: string; matchScore: number }[] // New structure
+  appliedJobs: { jobId: string; matchScore: number; jobTitle?: string }[] // New structure
   offers?: string[] // Array of job IDs for which the candidate has offers
 }
 
@@ -83,6 +84,16 @@ export interface Application {
   modifiedBy: number | null;
   modifiedDate: string | null;
   mobile: string;
+  // Additional fields from API response
+  name?: string;
+  applicationEmail?: string;
+  skills?: string[];
+  experience?: string;
+  previousPosition?: string;
+  companyName?: string;
+  education?: string[];
+  jobTitle?: string;
+  resumeScore?: number;
 }
 
 export interface UserRoleApi {
@@ -155,4 +166,16 @@ export interface CandidatePipelineResponse {
     fit: string;
     reason: string;
   };
+}
+
+export interface Stage {
+  id: string
+  name: string
+  description?: string
+  order: number
+  color?: string
+  jobId: string
+  isActive: boolean
+  createdDate: string
+  modifiedDate?: string
 }

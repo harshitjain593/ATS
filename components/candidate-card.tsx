@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Phone, Briefcase, GraduationCap, Eye } from "lucide-react"
-import { type Candidate } from "@/data/mock-data" // Only import the type, not mockJobs
+import { Phone, Briefcase, GraduationCap, Eye, Mail } from "lucide-react"
+import { type Candidate } from "@/lib/types"
 import { MatchScoreRing } from "./match-score-ring"
 import Link from "next/link"
 
@@ -45,24 +45,36 @@ export function CandidateCard({ candidate, userAppliedJobs = [] }: CandidateCard
   }
 
   // Filter applied jobs for this candidate if userAppliedJobs is provided
-  const appliedJobs = userAppliedJobs.filter(job => String(job.userId) === String(candidate.id))
+  // Note: candidate.id could be either userId (from candidates page) or applicationId (from job details page)
+  const appliedJobs = userAppliedJobs ? userAppliedJobs.filter(job => {
+    // If we have userAppliedJobs, use the userId from that data
+    return String(job.userId) === String(candidate.id)
+  }) : []
+
+  // If no appliedJobs from userAppliedJobs, use the candidate's own appliedJobs
+  const displayAppliedJobs = appliedJobs.length > 0 ? appliedJobs : candidate.appliedJobs
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-        <Avatar className="h-12 w-12">
-          <AvatarImage src={candidate.avatar || "/placeholder.svg?height=32&width=32"} />
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-3">
+        {/* <Avatar className="h-12 w-12 flex-shrink-0">
           <AvatarFallback>{candidate.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div className="grid gap-1">
-          <CardTitle>{candidate.name}</CardTitle>
-          <CardDescription>{candidate.email}</CardDescription>
+        </Avatar> */}
+        <div className="grid gap-1 flex-1 min-w-0">
+          <CardTitle className="text-sm">{candidate.name}</CardTitle>
+          <CardDescription className="text-xs">{candidate.applicationEmail}</CardDescription>
         </div>
-        <Badge className={getStatusColor(candidate.status)} variant="outline">
+        <Badge className={`${getStatusColor(candidate.status)} flex-shrink-0 text-xs`} variant="outline">
           {candidate.status}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
+        {candidate.applicationEmail && (
+          <div className="flex items-center gap-2 text-sm">
+            <Mail className="h-4 w-4" />
+            <span>{candidate.applicationEmail}</span>
+          </div>
+        )}
         {candidate.phone && (
           <div className="flex items-center gap-2 text-sm">
             <Phone className="h-4 w-4" />
@@ -95,13 +107,15 @@ export function CandidateCard({ candidate, userAppliedJobs = [] }: CandidateCard
           {candidate.skills.length > 3 && <Badge variant="secondary">+{candidate.skills.length - 3} more</Badge>}
         </div>
         {/* Show applied jobs from userAppliedJobs if provided */}
-        {appliedJobs.length > 0 && (
+        {displayAppliedJobs.length > 0 && (
           <div className="mt-4 space-y-2">
             <h4 className="text-sm font-medium">Applied Jobs:</h4>
-            {appliedJobs.map((job) => (
-              <div key={job.jobId} className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">- {job.title}</span>
-                {typeof job.matchScore === 'number' && <MatchScoreRing score={job.matchScore} />}
+            {displayAppliedJobs.map((job, index) => (
+              <div key={job.jobId || index} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  - {('title' in job ? job.title : job.jobTitle) || 'Unknown Job'}
+                </span>
+                {('matchScore' in job && typeof job.matchScore === 'number') && <MatchScoreRing score={job.matchScore} />}
               </div>
             ))}
           </div>

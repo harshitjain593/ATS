@@ -22,16 +22,20 @@ import { applyToJob } from "@/redux/jobsThunk";
 // Helper function to map an Application to a partial Candidate
 function mapApplicationToCandidate(app: Application): Candidate {
   return {
-    id: String(app.userId),
-    name: app.firstName + app.lastName, // No name available, use ID
-    email: "N/A", // No email available
+    id: String(app.id), // Use application ID instead of userId for view profile
+    name: app.name || "Unknown",
+    applicationEmail: app.applicationEmail || "N/A", // Use applicationEmail instead of email
     phone: app.mobile,
-    status: app.status as Candidate['status'], // Map status
-    skills: [], // No skills available
-    experience: [],
-    education: [],
+    status: app.status as Candidate['status'],
+    skills: Array.isArray(app.skills) ? app.skills.filter((skill: string) => skill && skill.trim() !== "") : [],
+    experience: app.experience ? [{ title: app.previousPosition || "", company: app.companyName || "", years: parseFloat(app.experience) || 0 }] : [],
+    education: Array.isArray(app.education) ? app.education.filter((e: string) => e && e.trim() !== "").map((e: string) => ({ degree: e, institution: '', year: 0 })) : [],
     notes: app.coverLetter,
-    appliedJobs: [{ jobId: String(app.jobId), matchScore: 0 }], // Basic info
+    appliedJobs: [{ 
+      jobId: String(app.jobId), 
+      matchScore: app.resumeScore || 0,
+      jobTitle: app.jobTitle || "Unknown Job" // Add job title from the application
+    }],
   }
 }
 
@@ -106,6 +110,7 @@ export function JobDetailsPage({ jobId }: JobDetailsPageProps) {
     try {
       await dispatch(applyToJob({
         jobId: Number(job.id),
+        // @ts-ignoreS
         userId: Number(currentUser?.id),
         status: "Applied",
         resumeFile,
@@ -254,7 +259,7 @@ export function JobDetailsPage({ jobId }: JobDetailsPageProps) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {applications.map((app) => {
                 const candidate = mapApplicationToCandidate(app)
-                return <CandidateCard key={candidate.id} candidate={candidate} userAppliedJobs={userAppliedJobs} />
+                return <CandidateCard key={candidate.id} candidate={candidate} />
               })}
             </div>
           )}

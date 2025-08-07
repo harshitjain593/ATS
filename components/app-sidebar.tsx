@@ -14,6 +14,8 @@ import {
   LogIn,
   UserPlus,
   User,
+  Loader2,
+  GitBranch,
 } from "lucide-react"
 
 import { SearchForm } from "./search-form"
@@ -36,12 +38,51 @@ import { Button } from "@/components/ui/button"
 import { useSelector } from "react-redux"
 import { RootState } from "@/redux/store"
 import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
   const currentUser = useSelector((state: RootState) => state.users.authUser)
+  const isLoadingUser = useSelector((state: RootState) => state.users.loadingAuth)
   const { logout } = useUser()
+  const pathname = usePathname()
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Show loading state during SSR and initial client render to prevent hydration mismatch
+  if (!isClient || isLoadingUser) {
+    return (
+      <Sidebar {...props}>
+        <SidebarHeader>
+          <SearchForm />
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Loading...</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton disabled>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading...</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="p-2 text-xs text-muted-foreground">
+          Crewpilot © {new Date().getFullYear()}
+          </div>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    )
+  }
 
   const recruiterAdminNav = [
     {
@@ -73,6 +114,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       href: "/offers",
       icon: Handshake,
       active: pathname.startsWith("/offers"),
+    },
+    {
+      title: "Pipeline Stages",
+      href: "/stages",
+      icon: GitBranch,
+      active: pathname.startsWith("/stages"),
     },
     {
       title: "Resume Parser",
@@ -214,7 +261,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <div className="p-2 text-xs text-muted-foreground">
-          ATS System © {new Date().getFullYear()}
+        Crewpilot © {new Date().getFullYear()}
           {currentUser && (
             <div className="mt-1">
               Logged in as: <span className="font-medium">{currentUser.email}</span> (

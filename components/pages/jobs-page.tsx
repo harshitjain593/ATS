@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Briefcase, MapPin, Clock, Users, Calendar, Loader2 } from "lucide-react"
+import { Search, Plus, Briefcase, MapPin, Clock, Users, Calendar, Loader2, Grid3X3, List, Eye } from "lucide-react"
 import { useUser } from "@/context/user-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -19,11 +19,24 @@ import { useDispatch, useSelector } from "react-redux"
 import { fetchJobs, createJob, approveJob, rejectJob } from "@/redux/jobsThunk"
 import { RootState, AppDispatch } from "@/redux/store"
 import { Job } from "@/lib/types"
+import { mockCandidates } from "@/data/mock-data"
+
+const pipelineStages = [
+  { id: "screening", label: "Screening", color: "bg-blue-500" },
+  { id: "submissions", label: "Pending", color: "bg-purple-500" },
+  { id: "interview", label: "Interview", color: "bg-orange-500" },
+  { id: "offered", label: "Offered", color: "bg-yellow-500" },
+  { id: "hired", label: "Hired", color: "bg-teal-500" },
+  { id: "rejected", label: "Rejected", color: "bg-red-500" },
+];
 
 export function JobsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState("all") // 'all', 'Full-time', 'Part-time', 'Contract', 'Internship'
-  const [filterStatus, setFilterStatus] = useState("all") // 'all', 'Open', 'Closed', 'Draft'
+  const [filterType, setFilterType] = useState("all")
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [selectedPipelineStage, setSelectedPipelineStage] = useState("all")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [showPipeline, setShowPipeline] = useState(false)
   const [isCreateJobDialogOpen, setIsCreateJobDialogOpen] = useState(false)
   const [newJob, setNewJob] = useState<any>({
     title: "",
@@ -59,7 +72,6 @@ export function JobsPage() {
   const isLoadingUser = useSelector((state: RootState) => state.users.loadingAuth)
   const router = useRouter()
 
- 
   const { toast } = useToast()
   const dispatch = useDispatch<AppDispatch>()
   const { jobs, loading, error } = useSelector((state: RootState) => state.jobs)
@@ -68,11 +80,37 @@ export function JobsPage() {
     dispatch(fetchJobs())
   }, [dispatch])
 
+  console.log("these are the jobs", jobs)
+
   useEffect(() => {
     if (!isLoadingUser && (!currentUser || currentUser.role === "candidate")) {
       router.push("/login")
     }
   }, [currentUser, isLoadingUser, router])
+
+  // Get candidate counts for each job by pipeline stage using real API data
+  const getCandidateCounts = (job: Job) => {
+    if (!job.applicationStatus || !Array.isArray(job.applicationStatus)) {
+      return {
+        screening: 0,
+        submissions: 0,
+        interview: 0,
+        offered: 0,
+        hired: 0,
+        rejected: 0,
+      };
+    }
+    
+    // Map API statuses to pipeline stages
+    return {
+      screening: job.applicationStatus.filter(status => status === "Screening").length,
+      submissions: job.applicationStatus.filter(status => status === "Submissions" || status === "Pending").length,
+      interview: job.applicationStatus.filter(status => status === "Interview").length,
+      offered: job.applicationStatus.filter(status => status === "Offered").length,
+      hired: job.applicationStatus.filter(status => status === "Hired").length,
+      rejected: job.applicationStatus.filter(status => status === "Rejected").length,
+    };
+  };
 
   const filteredJobs = useMemo(() => {
     let currentJobs = jobs
@@ -103,7 +141,6 @@ export function JobsPage() {
       })
       return
     }
-    // If status is 'PendingApproval', keep it as is, else default to 'Draft'
     const jobToCreate = { ...newJob, status: newJob.status === 'PendingApproval' ? 'PendingApproval' : 'Draft' }
     await dispatch(createJob(jobToCreate))
     
@@ -196,36 +233,65 @@ export function JobsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2 bg-transparent">
-              Type: {filterType === "all" ? "All" : filterType}
-              <Clock className="h-4 w-4" />
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2 bg-transparent">
+                Type: {filterType === "all" ? "All" : filterType}
+                <Clock className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setFilterType("all")}>All</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType("Full-time")}>Full-time</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType("Part-time")}>Part-time</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType("Contract")}>Contract</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType("Internship")}>Internship</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2 bg-transparent">
+                Status: {filterStatus === "all" ? "All" : filterStatus}
+                <Calendar className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setFilterStatus("all")}>All</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("Open")}>Open</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("Closed")}>Closed</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("Draft")}>Draft</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("PendingApproval")}>Pending Approval</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant={showPipeline ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowPipeline(!showPipeline)}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            {showPipeline ? "Hide Pipeline" : "Show Pipeline"}
+          </Button>
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setFilterType("all")}>All</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterType("Full-time")}>Full-time</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterType("Part-time")}>Part-time</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterType("Contract")}>Contract</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterType("Internship")}>Internship</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2 bg-transparent">
-              Status: {filterStatus === "all" ? "All" : filterStatus}
-              <Calendar className="h-4 w-4" />
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setFilterStatus("all")}>All</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterStatus("Open")}>Open</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterStatus("Closed")}>Closed</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterStatus("Draft")}>Draft</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterStatus("PendingApproval")}>Pending Approval</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
+        </div>
       </div>
 
       {/* Job Listings */}
@@ -245,63 +311,168 @@ export function JobsPage() {
             No job postings found matching your criteria.
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredJobs.map((job) => (
-            <Card key={job.id} className="border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Briefcase className="h-5 w-5" /> {job.title}
-                  <Badge className={`ml-2 border ${getStatusColor(job.status)}`}>{job.status}</Badge>
-                </CardTitle>
-                <CardDescription>{job.company}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{job.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{job.type}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span>{job.applicants?.length} Applicants</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Posted: {job.postedDate}</span>
-                </div>
-                <Link href={`/jobs/${job.id}`}>
-                  <Button variant="outline" className="w-full mt-4 bg-transparent">
-                    View Details
-                  </Button>
-                </Link>
-                {/* Admin Approval Actions */}
-                {currentUser.role === "admin" && job.status === "PendingApproval" && (
-                  <div className="flex flex-col gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      className="w-full bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30"
-                      onClick={() => handleApprove(job.id)}
-                    >
-                      Approve
+          {filteredJobs.map((job) => {
+            const candidateCounts = getCandidateCounts(job);
+            return (
+              <Card key={job.id} className="border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5" /> {job.title}
+                    <Badge className={`ml-2 border ${getStatusColor(job.status)}`}>{job.status}</Badge>
+                  </CardTitle>
+                  <CardDescription>{job.company}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{job.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{job.type}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span>{job.applicants?.length} Applicants</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>Posted: {job.postedDate}</span>
+                  </div>
+                  
+                  {/* Pipeline Visualization - Only show when showPipeline is enabled */}
+                  {showPipeline && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="text-sm font-medium mb-3">Candidate Pipeline</h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        {pipelineStages.map((stage) => (
+                          <div key={stage.id} className="text-center">
+                            <div className={`w-full h-1 ${stage.color} mb-1`}></div>
+                            <div className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${stage.color} text-white text-xs font-bold`}>
+                              {candidateCounts[stage.id as keyof typeof candidateCounts]}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">{stage.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Link href={`/jobs/${job.id}`}>
+                    <Button variant="outline" className="w-full mt-4 bg-transparent">
+                      View Details
                     </Button>
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={() => handleReject(job.id)}
+                  </Link>
+                  {/* Admin Approval Actions */}
+                  {currentUser.role === "admin" && job.status === "PendingApproval" && (
+                    <div className="flex flex-col gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        className="w-full bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30"
+                        onClick={() => handleApprove(job.id)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => handleReject(job.id)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredJobs.map((job) => {
+            const candidateCounts = getCandidateCounts(job);
+            return (
+              <Card key={job.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-600 hover:underline cursor-pointer" onClick={() => router.push(`/jobs/${job.id}`)}>
+                          {job.title} ({job.applicants?.length || 0})
+                        </h3>
+                        <p className="text-muted-foreground">{job.company}</p>
+                      </div>
+                      <Badge className={getStatusColor(job.status)} variant="outline">
+                        {job.status}
+                      </Badge>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => router.push(`/jobs/${job.id}`)}
                     >
-                      Reject
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
                     </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                  
+                  {/* Pipeline Visualization - Only show when showPipeline is enabled */}
+                  {showPipeline && (
+                    <div className="grid grid-cols-6 gap-4 mb-4">
+                        {pipelineStages.map((stage) => (
+                          <div key={stage.id} className="text-center">
+                            <div className={`w-full h-1 ${stage.color} mb-2`}></div>
+                            <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${stage.color} text-white text-xs font-bold`}>
+                              {candidateCounts[stage.id as keyof typeof candidateCounts]}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">{stage.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {job.location}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {job.type}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Posted: {job.postedDate}
+                      </span>
+                    </div>
+                    {/* Admin Approval Actions */}
+                    {currentUser.role === "admin" && job.status === "PendingApproval" && (
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30"
+                          onClick={() => handleApprove(job.id)}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleReject(job.id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
       {/* Create New Job Dialog */}
       <Dialog open={isCreateJobDialogOpen} onOpenChange={setIsCreateJobDialogOpen}>

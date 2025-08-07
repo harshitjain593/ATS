@@ -15,7 +15,7 @@ import ClientUserInitializer from "@/components/client-user-initializer"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "ATS System",
+  title: "Crewpilot",
   description: "Applicant Tracking System built with Next.js and Shadcn UI",
     generator: 'v0.dev'
 }

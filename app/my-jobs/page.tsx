@@ -91,8 +91,10 @@ export default function CandidateJobsPage() {
       }));
       setAppliedJobs((prev) => [...prev, selectedJob.id]);
       setApplyModalOpen(false);
+      //@ts-ignore
       toast({ title: "Application Submitted", description: "You have applied to this job." });
     } catch (error: any) {
+      //@ts-ignore
       toast({ title: "Application Failed", description: error?.message || "Failed to apply." });
     }
   };

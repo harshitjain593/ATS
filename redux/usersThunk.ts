@@ -2,13 +2,13 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { UserApi, AuthRequest, AuthResponse } from '@/lib/types';
 import { setCurrentUser } from './usersSlice';
 
-const BASE_URL = 'http://192.168.1.13:5000/api/';
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const fetchUsers = createAsyncThunk<UserApi[]>(
   'users/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch(BASE_URL + 'UserManager/GetAllUsers');
+      const res = await fetch(`${BASE_URL}/UserManager/GetAllUsers`);
       const data = await res.json();
       return Array.isArray(data.data) ? data.data : [];
     } catch (error: any) {
@@ -21,7 +21,7 @@ export const fetchUserById = createAsyncThunk<UserApi, number>(
   'users/fetchUserById',
   async (userId, { rejectWithValue }) => {
     try {
-      const res = await fetch(BASE_URL + `UserManager/GetUserById?userId=${userId}`);
+      const res = await fetch(`${BASE_URL}/UserManager/GetUserById?userId=${userId}`);
       const data = await res.json();
       if (data.data) return data.data;
       throw new Error('User not found');
@@ -40,6 +40,7 @@ export const createUser = createAsyncThunk<UserApi, {
     role: "admin" | "recruiter" | "candidate";
   }>(
     'users/createUser',
+    // @ts-ignore
     async (user, { rejectWithValue }) => {
       const roleMap: Record<string, number> = {
         admin: 1,
@@ -58,7 +59,7 @@ export const createUser = createAsyncThunk<UserApi, {
       };
   
       try {
-        const res = await fetch(BASE_URL + 'UserManager/CreateOrSetUser', {
+        const res = await fetch(`${BASE_URL}/UserManager/CreateOrSetUser`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -101,7 +102,7 @@ export const createUser = createAsyncThunk<UserApi, {
     'users/authenticateUser',
     async ({ mobileOrEmail, password }, { dispatch, rejectWithValue }) => {
       try {
-        const res = await fetch(BASE_URL + 'UserManager/AuthenticateUser', {
+        const res = await fetch(`${BASE_URL}/UserManager/AuthenticateUser`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobileOrEmail, password }),
