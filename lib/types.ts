@@ -63,11 +63,42 @@ export interface Offer {
   id: string
   candidateId: string
   jobId: string
-  salary: string
-  benefits: string[]
+  salary: number
   status: "Pending" | "Accepted" | "Rejected" | "Withdrawn"
-  offerDate: string
-  expirationDate: string
+  // Additional offer letter details
+  candidateName?: string
+  candidateEmail?: string
+  candidatePhone?: string
+  candidateAddress?: string
+  jobTitle?: string
+  companyName?: string
+  department?: string
+  location?: string
+  jobType?: "Full-time" | "Part-time" | "Contract" | "Internship"
+  baseSalary?: number
+  bonus?: number
+  benefits?: string[]
+  equity?: string
+  startDate?: string
+  reportingTo?: string
+  workSchedule?: string
+  probationPeriod?: string
+  noticePeriod?: string
+  terminationClause?: string
+  confidentialityClause?: string
+  nonCompeteClause?: string
+  intellectualPropertyClause?: string
+  offerExpiryDate?: string
+  acceptanceDeadline?: string
+  contactPerson?: string
+  contactEmail?: string
+  contactPhone?: string
+  notes?: string
+  termsAndConditions?: string[]
+  createdBy?: string
+  createdDate?: string
+  modifiedBy?: string
+  modifiedDate?: string
 }
 
 export interface Application {

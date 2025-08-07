@@ -106,20 +106,6 @@ export function CandidateCard({ candidate, userAppliedJobs = [] }: CandidateCard
           ))}
           {candidate.skills.length > 3 && <Badge variant="secondary">+{candidate.skills.length - 3} more</Badge>}
         </div>
-        {/* Show applied jobs from userAppliedJobs if provided */}
-        {displayAppliedJobs.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <h4 className="text-sm font-medium">Applied Jobs:</h4>
-            {displayAppliedJobs.map((job, index) => (
-              <div key={job.jobId || index} className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  - {('title' in job ? job.title : job.jobTitle) || 'Unknown Job'}
-                </span>
-                {('matchScore' in job && typeof job.matchScore === 'number') && <MatchScoreRing score={job.matchScore} />}
-              </div>
-            ))}
-          </div>
-        )}
         <Link href={`/candidates/${candidate.id}`}>
           <Button variant="outline" className="w-full mt-4 gap-2 bg-transparent">
             <Eye className="h-4 w-4" />

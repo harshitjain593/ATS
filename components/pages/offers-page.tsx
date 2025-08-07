@@ -9,37 +9,68 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Briefcase, DollarSign, Calendar, ChevronDown } from "lucide-react"
-import { mockOffers, mockCandidates, mockJobs, type Offer } from "@/data/mock-data"
+import { Textarea } from "@/components/ui/textarea"
+import { Search, Plus, Briefcase, DollarSign, Calendar, ChevronDown, Download, Eye } from "lucide-react"
 import { useUser } from "@/context/user-context"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { RootState } from "@/redux/store"
-import { useSelector } from "react-redux"
+import { RootState, AppDispatch } from "@/redux/store"
+import { useSelector, useDispatch } from "react-redux"
+import { fetchOffers, createOffer, updateOffer, deleteOffer } from "@/redux/offersThunk"
+import { fetchJobs } from "@/redux/jobsThunk"
+import { getCandidatesFromApi } from "@/redux/candidatesThunk"
+import { generateOfferLetterPDF } from "@/utils/pdf-generator"
+import { Offer } from "@/lib/types"
 
 export function OffersPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all") // 'all', 'Pending', 'Accepted', 'Rejected', 'Withdrawn'
-  const [offers, setOffers] = useState<Offer[]>(mockOffers) // Use state to allow adding new offers
+  const [filterStatus, setFilterStatus] = useState("all")
   const [isCreateOfferDialogOpen, setIsCreateOfferDialogOpen] = useState(false)
-  const [newOffer, setNewOffer] = useState<Omit<Offer, "id">>({
+  const [newOffer, setNewOffer] = useState<Partial<Offer>>({
     candidateId: "",
     jobId: "",
-    salary: 0,
+    baseSalary: 0,
+    bonus: 0,
+    benefits: [],
+    equity: "",
     startDate: "",
+    reportingTo: "",
+    workSchedule: "",
+    probationPeriod: "",
+    noticePeriod: "",
+    terminationClause: "",
+    confidentialityClause: "",
+    nonCompeteClause: "",
+    intellectualPropertyClause: "",
+    offerExpiryDate: "",
+    acceptanceDeadline: "",
+    contactPerson: "",
+    contactEmail: "",
+    contactPhone: "",
+    notes: "",
+    termsAndConditions: [],
     status: "Pending",
   })
 
+  const dispatch = useDispatch<AppDispatch>()
   const currentUser = useSelector((state: RootState) => state.users.authUser)
   const isLoadingUser = useSelector((state: RootState) => state.users.loadingAuth)
+  const { offers, loading, error } = useSelector((state: RootState) => state.offers)
+  const { jobs } = useSelector((state: RootState) => state.jobs)
+  const { candidates } = useSelector((state: RootState) => state.candidates)
+  
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
     if (!isLoadingUser && (!currentUser || currentUser.role === "candidate")) {
       router.push("/login")
+    } else {
+      dispatch(fetchOffers() as any)
+      dispatch(fetchJobs() as any)
+      dispatch(getCandidatesFromApi() as any)
     }
-  }, [currentUser, isLoadingUser, router])
+  }, [currentUser, isLoadingUser, router, dispatch])
 
   const filteredOffers = useMemo(() => {
     let currentOffers = offers
@@ -50,8 +81,8 @@ export function OffersPage() {
 
     if (searchTerm) {
       currentOffers = currentOffers.filter((offer) => {
-        const candidate = mockCandidates.find((c) => c.id === offer.candidateId)
-        const job = mockJobs.find((j) => j.id === offer.jobId)
+        const candidate = candidates.find((c) => c.id === offer.candidateId)
+        const job = jobs.find((j) => j.id === offer.jobId)
 
         return (
           candidate?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,37 +91,64 @@ export function OffersPage() {
       })
     }
     return currentOffers
-  }, [searchTerm, filterStatus, offers])
+  }, [searchTerm, filterStatus, offers, candidates, jobs])
 
-  const handleCreateOffer = () => {
-    if (!newOffer.candidateId || !newOffer.jobId || !newOffer.salary || !newOffer.startDate) {
+  const handleCreateOffer = async () => {
+    if (!newOffer.candidateId || !newOffer.jobId || !newOffer.baseSalary || !newOffer.startDate) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required offer details.",
         variant: "destructive",
+        id: "missing-offer-info"
       })
       return
     }
 
-    const offerId = `offer-${mockOffers.length + 1}`
-    const createdOffer: Offer = {
-      ...newOffer,
-      id: offerId,
+    try {
+      await dispatch(createOffer(newOffer) as any)
+      setIsCreateOfferDialogOpen(false)
+      setNewOffer({
+        candidateId: "",
+        jobId: "",
+        baseSalary: 0,
+        bonus: 0,
+        benefits: [],
+        equity: "",
+        startDate: "",
+        reportingTo: "",
+        workSchedule: "",
+        probationPeriod: "",
+        noticePeriod: "",
+        terminationClause: "",
+        confidentialityClause: "",
+        nonCompeteClause: "",
+        intellectualPropertyClause: "",
+        offerExpiryDate: "",
+        acceptanceDeadline: "",
+        contactPerson: "",
+        contactEmail: "",
+        contactPhone: "",
+        notes: "",
+        termsAndConditions: [],
+        status: "Pending",
+      })
+      toast({
+        title: "Offer Created",
+        description: "Offer letter has been created successfully.",
+        id: "offer-created"
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create offer.",
+        variant: "destructive",
+        id: "offer-creation-error"
+      })
     }
-    mockOffers.push(createdOffer) // Add to mock data
-    setOffers([...mockOffers]) // Update state to re-render
-    setIsCreateOfferDialogOpen(false)
-    setNewOffer({
-      candidateId: "",
-      jobId: "",
-      salary: 0,
-      startDate: "",
-      status: "Pending",
-    })
-    toast({
-      title: "Offer Created",
-      description: `Offer for ${mockCandidates.find((c) => c.id === createdOffer.candidateId)?.name} has been extended.`,
-    })
+  }
+
+  const handleDownloadPDF = (offer: Offer) => {
+    generateOfferLetterPDF(offer)
   }
 
   const getStatusColor = (status: Offer["status"]) => {
@@ -160,7 +218,11 @@ export function OffersPage() {
       </div>
 
       {/* Offer Listings */}
-      {filteredOffers.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <p className="text-muted-foreground">Loading offers...</p>
+        </div>
+      ) : filteredOffers.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
             No offers found matching your criteria.
@@ -169,14 +231,14 @@ export function OffersPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredOffers.map((offer) => {
-            const candidate = mockCandidates.find((c) => c.id === offer.candidateId)
-            const job = mockJobs.find((j) => j.id === offer.jobId)
+            const candidate = candidates.find((c) => c.id === offer.candidateId)
+            const job = jobs.find((j) => j.id === offer.jobId)
 
             return (
-              <Card key={offer.id}>
+              <Card key={offer.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDownloadPDF(offer)}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>{candidate?.name || "N/A"}</CardTitle>
+                    <CardTitle className="text-lg">{candidate?.name || "N/A"}</CardTitle>
                     <Badge className={getStatusColor(offer.status)} variant="outline">
                       {offer.status}
                     </Badge>
@@ -188,11 +250,11 @@ export function OffersPage() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span>Salary: ${offer.salary.toLocaleString()}</span>
+                    <span>Salary: ${offer.baseSalary?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Start Date: {offer.startDate}</span>
+                    <span>Start Date: {offer.startDate ? new Date(offer.startDate).toLocaleDateString() : 'TBD'}</span>
                   </div>
                   {offer.notes && (
                     <div className="text-sm text-muted-foreground">
@@ -200,6 +262,20 @@ export function OffersPage() {
                       <p className="line-clamp-2">{offer.notes}</p>
                     </div>
                   )}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownloadPDF(offer)
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )
@@ -209,98 +285,299 @@ export function OffersPage() {
 
       {/* Create New Offer Dialog */}
       <Dialog open={isCreateOfferDialogOpen} onOpenChange={setIsCreateOfferDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Offer</DialogTitle>
-            <CardDescription>Fill in the details for the new job offer.</CardDescription>
+            <DialogTitle>Create New Offer Letter</DialogTitle>
+            <CardDescription>Fill in all the details for the comprehensive offer letter.</CardDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="candidate" className="text-right">
-                Candidate
-              </Label>
-              <Select
-                value={newOffer.candidateId}
-                onValueChange={(value) => setNewOffer({ ...newOffer, candidateId: value })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select candidate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockCandidates.map((candidate) => (
-                    <SelectItem key={candidate.id} value={candidate.id}>
-                      {candidate.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="grid gap-6 py-4">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="candidate">Candidate *</Label>
+                  <Select
+                    value={newOffer.candidateId}
+                    onValueChange={(value) => setNewOffer({ ...newOffer, candidateId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select candidate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {candidates.map((candidate) => (
+                        <SelectItem key={candidate.id} value={candidate.id}>
+                          {candidate.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="job">Job Position *</Label>
+                  <Select value={newOffer.jobId} onValueChange={(value) => setNewOffer({ ...newOffer, jobId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select job" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobs.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          {job.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="job" className="text-right">
-                Job
-              </Label>
-              <Select value={newOffer.jobId} onValueChange={(value) => setNewOffer({ ...newOffer, jobId: value })}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select job" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockJobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Position Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Position Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    value={newOffer.department || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, department: e.target.value })}
+                    placeholder="e.g., Engineering"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reportingTo">Reporting To</Label>
+                  <Input
+                    value={newOffer.reportingTo || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, reportingTo: e.target.value })}
+                    placeholder="e.g., Engineering Manager"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="workSchedule">Work Schedule</Label>
+                  <Input
+                    value={newOffer.workSchedule || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, workSchedule: e.target.value })}
+                    placeholder="e.g., Monday-Friday, 9 AM-6 PM"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="startDate">Start Date *</Label>
+                  <Input
+                    type="date"
+                    value={newOffer.startDate || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, startDate: e.target.value })}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="salary" className="text-right">
-                Salary
-              </Label>
-              <Input
-                id="salary"
-                type="number"
-                value={newOffer.salary}
-                onChange={(e) => setNewOffer({ ...newOffer, salary: Number(e.target.value) })}
-                className="col-span-3"
-              />
+
+            {/* Compensation */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Compensation & Benefits</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="baseSalary">Base Salary *</Label>
+                  <Input
+                    type="number"
+                    value={newOffer.baseSalary || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, baseSalary: Number(e.target.value) })}
+                    placeholder="e.g., 75000"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bonus">Bonus</Label>
+                  <Input
+                    type="number"
+                    value={newOffer.bonus || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, bonus: Number(e.target.value) })}
+                    placeholder="e.g., 10000"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="equity">Equity</Label>
+                  <Input
+                    value={newOffer.equity || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, equity: e.target.value })}
+                    placeholder="e.g., 1000 RSUs"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="benefits">Benefits (comma-separated)</Label>
+                  <Input
+                    value={newOffer.benefits?.join(', ') || ''}
+                    onChange={(e) => setNewOffer({ 
+                      ...newOffer, 
+                      benefits: e.target.value.split(',').map(b => b.trim()).filter(b => b)
+                    })}
+                    placeholder="Health insurance, 401k, PTO"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startDate" className="text-right">
-                Start Date
-              </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={newOffer.startDate}
-                onChange={(e) => setNewOffer({ ...newOffer, startDate: e.target.value })}
-                className="col-span-3"
-              />
+
+            {/* Employment Terms */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Employment Terms</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="probationPeriod">Probation Period</Label>
+                  <Input
+                    value={newOffer.probationPeriod || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, probationPeriod: e.target.value })}
+                    placeholder="e.g., 90 days"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="noticePeriod">Notice Period</Label>
+                  <Input
+                    value={newOffer.noticePeriod || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, noticePeriod: e.target.value })}
+                    placeholder="e.g., 2 weeks"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="offerExpiryDate">Offer Expiry Date</Label>
+                  <Input
+                    type="date"
+                    value={newOffer.offerExpiryDate || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, offerExpiryDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="acceptanceDeadline">Acceptance Deadline</Label>
+                  <Input
+                    type="date"
+                    value={newOffer.acceptanceDeadline || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, acceptanceDeadline: e.target.value })}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <Select
-                value={newOffer.status}
-                onValueChange={(value) => setNewOffer({ ...newOffer, status: value as Offer["status"] })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Accepted">Accepted</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                  <SelectItem value="Withdrawn">Withdrawn</SelectItem>
-                </SelectContent>
-              </Select>
+
+            {/* Legal Clauses */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Legal Clauses</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="terminationClause">Termination Clause</Label>
+                  <Textarea
+                    value={newOffer.terminationClause || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, terminationClause: e.target.value })}
+                    placeholder="Enter termination clause..."
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confidentialityClause">Confidentiality Clause</Label>
+                  <Textarea
+                    value={newOffer.confidentialityClause || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, confidentialityClause: e.target.value })}
+                    placeholder="Enter confidentiality clause..."
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nonCompeteClause">Non-Compete Clause</Label>
+                  <Textarea
+                    value={newOffer.nonCompeteClause || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, nonCompeteClause: e.target.value })}
+                    placeholder="Enter non-compete clause..."
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="intellectualPropertyClause">Intellectual Property Clause</Label>
+                  <Textarea
+                    value={newOffer.intellectualPropertyClause || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, intellectualPropertyClause: e.target.value })}
+                    placeholder="Enter intellectual property clause..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Contact Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="contactPerson">Contact Person</Label>
+                  <Input
+                    value={newOffer.contactPerson || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, contactPerson: e.target.value })}
+                    placeholder="e.g., HR Manager"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Input
+                    type="email"
+                    value={newOffer.contactEmail || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, contactEmail: e.target.value })}
+                    placeholder="hr@company.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contactPhone">Contact Phone</Label>
+                  <Input
+                    value={newOffer.contactPhone || ''}
+                    onChange={(e) => setNewOffer({ ...newOffer, contactPhone: e.target.value })}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={newOffer.status}
+                    onValueChange={(value) => setNewOffer({ ...newOffer, status: value as Offer["status"] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Accepted">Accepted</SelectItem>
+                      <SelectItem value="Rejected">Rejected</SelectItem>
+                      <SelectItem value="Withdrawn">Withdrawn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Additional Information</h3>
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  value={newOffer.notes || ''}
+                  onChange={(e) => setNewOffer({ ...newOffer, notes: e.target.value })}
+                  placeholder="Additional notes or comments..."
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="termsAndConditions">Terms & Conditions (one per line)</Label>
+                <Textarea
+                  value={newOffer.termsAndConditions?.join('\n') || ''}
+                  onChange={(e) => setNewOffer({ 
+                    ...newOffer, 
+                    termsAndConditions: e.target.value.split('\n').filter(t => t.trim())
+                  })}
+                  placeholder="Enter terms and conditions, one per line..."
+                  rows={4}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOfferDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateOffer}>Create Offer</Button>
+            <Button onClick={handleCreateOffer} disabled={loading}>
+              {loading ? "Creating..." : "Create Offer"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
