@@ -214,11 +214,21 @@ export const mockInterviews: Interview[] = [
     jobId: "job1",
     date: "2024-07-20",
     time: "10:00 AM",
+    duration: 60,
     interviewer: "Recruiter Jane",
+    interviewerEmail: "jane@techsolutions.com",
+    interviewerPhone: "+1 (555) 123-4567",
     status: "Scheduled",
     feedback: "",
     score: undefined,
-    type: "virtual"
+    type: "virtual",
+    interviewMode: "human",
+    meetingLink: "https://meet.google.com/abc-defg-hij",
+    candidateName: "Alice Johnson",
+    jobTitle: "Software Engineer",
+    companyName: "Tech Solutions Inc.",
+    createdDate: "2024-07-15T10:00:00Z",
+    modifiedDate: "2024-07-15T10:00:00Z"
   },
   {
     id: "int2",
@@ -226,11 +236,21 @@ export const mockInterviews: Interview[] = [
     jobId: "job2",
     date: "2024-07-18",
     time: "02:00 PM",
+    duration: 90,
     interviewer: "Hiring Manager Mike",
+    interviewerEmail: "mike@innovatecorp.com",
+    interviewerPhone: "+1 (555) 234-5678",
     status: "Completed",
     feedback: "Good communication skills, strong product sense.",
     score: 4,
-    type: "virtual"
+    type: "virtual",
+    interviewMode: "human",
+    meetingLink: "https://meet.google.com/xyz-uvwx-yz",
+    candidateName: "Bob Smith",
+    jobTitle: "Product Manager",
+    companyName: "Innovate Corp.",
+    createdDate: "2024-07-10T14:00:00Z",
+    modifiedDate: "2024-07-18T16:00:00Z"
   },
   {
     id: "int3",
@@ -238,11 +258,26 @@ export const mockInterviews: Interview[] = [
     jobId: "job4",
     date: "2024-07-25",
     time: "11:00 AM",
-    interviewer: "Lead Data Scientist",
+    duration: 60,
+    interviewer: "AI System",
     status: "Scheduled",
     feedback: "",
     score: undefined,
-    type: "ai"
+    type: "ai",
+    interviewMode: "ai",
+    requirements: ["Python", "Machine Learning", "SQL", "Data Visualization", "TensorFlow"],
+    aiQuestions: [
+      "Can you walk me through your experience with Python and machine learning?",
+      "Describe a challenging data science project you worked on.",
+      "How do you handle large datasets and what tools do you use?",
+      "Tell me about your experience with TensorFlow and deep learning models.",
+      "What is your approach to data visualization and storytelling?"
+    ],
+    candidateName: "Charlie Brown",
+    jobTitle: "Data Scientist",
+    companyName: "Data Insights LLC",
+    createdDate: "2024-07-20T11:00:00Z",
+    modifiedDate: "2024-07-20T11:00:00Z"
   },
   {
     id: "int4",
@@ -250,11 +285,20 @@ export const mockInterviews: Interview[] = [
     jobId: "job1",
     date: "2024-07-22",
     time: "03:00 PM",
+    duration: 45,
     interviewer: "Recruiter Jane",
+    interviewerEmail: "jane@techsolutions.com",
+    interviewerPhone: "+1 (555) 123-4567",
     status: "Scheduled",
     feedback: "",
     score: undefined,
-    type: "ai"
+    type: "phone",
+    interviewMode: "human",
+    candidateName: "Candidate John",
+    jobTitle: "Software Engineer",
+    companyName: "Tech Solutions Inc.",
+    createdDate: "2024-07-18T15:00:00Z",
+    modifiedDate: "2024-07-18T15:00:00Z"
   },
 ]
 

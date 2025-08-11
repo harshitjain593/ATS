@@ -282,7 +282,7 @@ export function ResumeParserPage() {
                               <span key={idx} className="bg-blue-200 text-blue-900 rounded px-2 py-0.5 text-xs">{s}</span>
                             ))}
                           </div>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="font-semibold text-blue-900">Skill Gap:</span>
                             {pipelineResponse.skillGap?.length ? pipelineResponse.skillGap.map((g: string, idx: number) => (
                               <span key={idx} className="bg-red-100 text-red-800 rounded px-2 py-0.5 text-xs mr-1">{g}</span>

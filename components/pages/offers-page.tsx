@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Briefcase, DollarSign, Calendar, ChevronDown, Download, Eye } from "lucide-react"
+import { Search, Plus, Briefcase, DollarSign, Calendar, ChevronDown, Download, Eye, FileText } from "lucide-react"
 import { useUser } from "@/context/user-context"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
@@ -20,12 +20,17 @@ import { fetchOffers, createOffer, updateOffer, deleteOffer } from "@/redux/offe
 import { fetchJobs } from "@/redux/jobsThunk"
 import { getCandidatesFromApi } from "@/redux/candidatesThunk"
 import { generateOfferLetterPDF } from "@/utils/pdf-generator"
+import { offerTemplates, getTemplateById, OfferTemplate } from "@/utils/offer-templates"
 import { Offer } from "@/lib/types"
 
 export function OffersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [isTemplateSelectionDialogOpen, setIsTemplateSelectionDialogOpen] = useState(false)
   const [isCreateOfferDialogOpen, setIsCreateOfferDialogOpen] = useState(false)
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("formal")
+  const [previewOffer, setPreviewOffer] = useState<Partial<Offer> | null>(null)
   const [newOffer, setNewOffer] = useState<Partial<Offer>>({
     candidateId: "",
     jobId: "",
@@ -81,12 +86,9 @@ export function OffersPage() {
 
     if (searchTerm) {
       currentOffers = currentOffers.filter((offer) => {
-        const candidate = candidates.find((c) => c.id === offer.candidateId)
-        const job = jobs.find((j) => j.id === offer.jobId)
-
         return (
-          candidate?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          job?.title.toLowerCase().includes(searchTerm.toLowerCase())
+          offer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          offer.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
         )
       })
     }
@@ -104,9 +106,36 @@ export function OffersPage() {
       return
     }
 
+    // Get candidate and job details for preview
+    const candidate = candidates.find((c) => c.id === newOffer.candidateId)
+    const job = jobs.find((j) => j.id === newOffer.jobId)
+    
+    const completeOffer: Partial<Offer> = {
+      ...newOffer,
+      name: candidate?.name || "", // Use name field for API
+      companyName: job?.company || "", // Use companyName field for API
+      candidateName: candidate?.name || "",
+      candidateEmail: candidate?.applicationEmail || "",
+      candidatePhone: candidate?.phone || "",
+      candidateAddress: "",
+      jobTitle: job?.title || "",
+      location: job?.location || "",
+      jobType: job?.type || "Full-time",
+      createdDate: new Date().toISOString(),
+    }
+
+    setPreviewOffer(completeOffer)
+    setIsCreateOfferDialogOpen(false)
+    setIsPreviewDialogOpen(true)
+  }
+
+  const handleConfirmCreateOffer = async () => {
+    if (!previewOffer) return
+
     try {
-      await dispatch(createOffer(newOffer) as any)
-      setIsCreateOfferDialogOpen(false)
+      await dispatch(createOffer(previewOffer) as any)
+      setIsPreviewDialogOpen(false)
+      setPreviewOffer(null)
       setNewOffer({
         candidateId: "",
         jobId: "",
@@ -148,7 +177,57 @@ export function OffersPage() {
   }
 
   const handleDownloadPDF = (offer: Offer) => {
-    generateOfferLetterPDF(offer)
+    // Use the name and companyName directly from the offer object
+    const completeOffer: Offer = {
+      ...offer,
+      candidateName: offer.name || "",
+      candidateEmail: "", // Not available in API response
+      candidatePhone: "", // Not available in API response
+      candidateAddress: "",
+      jobTitle: "", // Not available in API response
+      companyName: offer.companyName || "",
+      location: "", // Not available in API response
+      jobType: "Full-time", // Default value
+    }
+
+    setPreviewOffer(completeOffer)
+    setIsPreviewDialogOpen(true)
+  }
+
+  const handleFinalDownloadPDF = () => {
+    if (!previewOffer) return
+    
+    const template = getTemplateById(selectedTemplate)
+    if (!template) {
+      toast({
+        title: "Error",
+        description: "Selected template not found.",
+        variant: "destructive",
+        id: "template-error"
+      })
+      return
+    }
+
+    // Generate PDF using the selected template
+    const htmlContent = template.generateHTML(previewOffer as Offer)
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast({
+        title: "Error",
+        description: "Please allow popups to download the PDF.",
+        variant: "destructive",
+        id: "popup-error"
+      })
+      return
+    }
+
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+    setTimeout(() => {
+      printWindow.print()
+      setIsPreviewDialogOpen(false)
+      setPreviewOffer(null)
+    }, 500)
   }
 
   const getStatusColor = (status: Offer["status"]) => {
@@ -182,7 +261,7 @@ export function OffersPage() {
           <p className="text-muted-foreground">Manage and track all job offers.</p>
         </div>
         {(currentUser.role === "admin" || currentUser.role === "recruiter") && (
-          <Button className="gap-2" onClick={() => setIsCreateOfferDialogOpen(true)}>
+          <Button className="gap-2" onClick={() => setIsTemplateSelectionDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Create New Offer
           </Button>
@@ -230,21 +309,18 @@ export function OffersPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredOffers.map((offer) => {
-            const candidate = candidates.find((c) => c.id === offer.candidateId)
-            const job = jobs.find((j) => j.id === offer.jobId)
-
+          {filteredOffers.map((offer, index) => {
             return (
-              <Card key={offer.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDownloadPDF(offer)}>
+              <Card key={offer.id || `offer-${index}`} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDownloadPDF(offer)}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{candidate?.name || "N/A"}</CardTitle>
+                    <CardTitle className="text-lg">{offer.name || "N/A"}</CardTitle>
                     <Badge className={getStatusColor(offer.status)} variant="outline">
                       {offer.status}
                     </Badge>
                   </div>
                   <CardDescription className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" /> {job?.title || "N/A"}
+                    <Briefcase className="h-4 w-4" /> {offer.companyName || "N/A"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -272,8 +348,8 @@ export function OffersPage() {
                         handleDownloadPDF(offer)
                       }}
                     >
-                      <Download className="h-4 w-4" />
-                      Download PDF
+                      <Eye className="h-4 w-4" />
+                      Preview & Download
                     </Button>
                   </div>
                 </CardContent>
@@ -282,6 +358,111 @@ export function OffersPage() {
           })}
         </div>
       )}
+
+      {/* Template Selection Dialog */}
+      <Dialog open={isTemplateSelectionDialogOpen} onOpenChange={setIsTemplateSelectionDialogOpen}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Choose Offer Letter Template</DialogTitle>
+            <CardDescription>
+              Select a template for your offer letter. You can preview each template and then proceed to fill in the offer details.
+            </CardDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Template Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {offerTemplates.map((template) => (
+                <Card 
+                  key={template.id} 
+                  className={`cursor-pointer transition-all ${
+                    selectedTemplate === template.id 
+                      ? 'ring-2 ring-blue-500 bg-blue-50' 
+                      : 'hover:shadow-md'
+                  }`}
+                  onClick={() => setSelectedTemplate(template.id)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <CardTitle className="text-sm">{template.name}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-xs text-muted-foreground mb-4">{template.description}</p>
+                    <Badge variant="outline" className="text-xs">
+                      {template.category}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Template Preview */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Template Preview</h3>
+              <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: getTemplateById(selectedTemplate)?.generateHTML({
+                      id: '',
+                      candidateId: '',
+                      jobId: '',
+                      salary: 0,
+                      status: 'Pending',
+                      candidateName: 'John Doe',
+                      candidateEmail: 'john.doe@email.com',
+                      candidatePhone: '+1 (555) 123-4567',
+                      candidateAddress: '123 Main Street, City, State 12345',
+                      jobTitle: 'Senior Software Engineer',
+                      companyName: 'Tech Company Inc.',
+                      department: 'Engineering',
+                      location: 'San Francisco, CA',
+                      jobType: 'Full-time',
+                      baseSalary: 120000,
+                      bonus: 15000,
+                      benefits: ['Health Insurance', '401k', 'PTO', 'Remote Work'],
+                      equity: '1000 RSUs',
+                      startDate: '2024-01-15',
+                      reportingTo: 'Engineering Manager',
+                      workSchedule: 'Monday-Friday, 9 AM-6 PM',
+                      probationPeriod: '90 days',
+                      noticePeriod: '2 weeks',
+                      terminationClause: 'Standard termination clause applies.',
+                      confidentialityClause: 'Confidentiality agreement required.',
+                      nonCompeteClause: 'Non-compete clause for 12 months.',
+                      intellectualPropertyClause: 'IP assignment clause applies.',
+                      offerExpiryDate: '2024-01-30',
+                      acceptanceDeadline: '2024-01-25',
+                      contactPerson: 'HR Manager',
+                      contactEmail: 'hr@techcompany.com',
+                      contactPhone: '+1 (555) 987-6543',
+                      notes: 'Welcome to the team!',
+                      termsAndConditions: ['Standard employment terms apply', 'Background check required'],
+                      createdBy: '',
+                      createdDate: new Date().toISOString(),
+                      modifiedBy: '',
+                      modifiedDate: new Date().toISOString(),
+                    } as Offer) || '' 
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTemplateSelectionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              setIsTemplateSelectionDialogOpen(false)
+              setIsCreateOfferDialogOpen(true)
+            }}>
+              Continue with Selected Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create New Offer Dialog */}
       <Dialog open={isCreateOfferDialogOpen} onOpenChange={setIsCreateOfferDialogOpen}>
@@ -576,7 +757,129 @@ export function OffersPage() {
               Cancel
             </Button>
             <Button onClick={handleCreateOffer} disabled={loading}>
-              {loading ? "Creating..." : "Create Offer"}
+              {loading ? "Creating..." : "Preview & Create Offer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preview Offer Letter</DialogTitle>
+            <CardDescription>
+              Review and edit the offer letter before downloading. Select a template and make any final adjustments.
+            </CardDescription>
+          </DialogHeader>
+          
+          {previewOffer && (
+            <div className="space-y-6">
+              {/* Template Selection */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Select Template</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {offerTemplates.map((template) => (
+                    <Card 
+                      key={template.id} 
+                      className={`cursor-pointer transition-all ${
+                        selectedTemplate === template.id 
+                          ? 'ring-2 ring-blue-500 bg-blue-50' 
+                          : 'hover:shadow-md'
+                      }`}
+                      onClick={() => setSelectedTemplate(template.id)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <CardTitle className="text-sm">{template.name}</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <p className="text-xs text-muted-foreground">{template.description}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Edit Offer Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="preview-candidateName">Candidate Name</Label>
+                    <Input
+                      value={previewOffer.candidateName || ''}
+                      onChange={(e) => setPreviewOffer({ ...previewOffer, candidateName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="preview-jobTitle">Job Title</Label>
+                    <Input
+                      value={previewOffer.jobTitle || ''}
+                      onChange={(e) => setPreviewOffer({ ...previewOffer, jobTitle: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="preview-companyName">Company Name</Label>
+                    <Input
+                      value={previewOffer.companyName || ''}
+                      onChange={(e) => setPreviewOffer({ ...previewOffer, companyName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="preview-baseSalary">Base Salary</Label>
+                    <Input
+                      type="number"
+                      value={previewOffer.baseSalary || ''}
+                      onChange={(e) => setPreviewOffer({ ...previewOffer, baseSalary: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="preview-startDate">Start Date</Label>
+                    <Input
+                      type="date"
+                      value={previewOffer.startDate || ''}
+                      onChange={(e) => setPreviewOffer({ ...previewOffer, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="preview-contactPerson">Contact Person</Label>
+                    <Input
+                      value={previewOffer.contactPerson || ''}
+                      onChange={(e) => setPreviewOffer({ ...previewOffer, contactPerson: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Preview</h3>
+                <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                  <div 
+                    dangerouslySetInnerHTML={{ 
+                      __html: getTemplateById(selectedTemplate)?.generateHTML(previewOffer as Offer) || '' 
+                    }} 
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>
+              Cancel
+            </Button>
+            {previewOffer && !previewOffer.id && (
+              <Button onClick={handleConfirmCreateOffer} disabled={loading}>
+                {loading ? "Creating..." : "Create Offer"}
+              </Button>
+            )}
+            <Button onClick={handleFinalDownloadPDF} className="gap-2">
+              <Download className="h-4 w-4" />
+              Download PDF
             </Button>
           </DialogFooter>
         </DialogContent>

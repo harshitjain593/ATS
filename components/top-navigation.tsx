@@ -167,7 +167,9 @@ export function TopNavigation() {
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
       <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold">Crewpilot</h1>
+        <Link href="/" className="hover:opacity-80 transition-opacity">
+          <h1 className="text-lg font-semibold">Crewpilot</h1>
+        </Link>
         <Separator orientation="vertical" className="h-4" />
         
         {/* Main Navigation */}

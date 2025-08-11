@@ -41,7 +41,7 @@ export default function LoginPage() {
           description: "Welcome back!",
         })
         if (window.location.pathname !== "/dashboard") {
-          router.push("/dashboard")
+          router.push("/")
         }
         console.log("Login success, token:", token)
       } else {

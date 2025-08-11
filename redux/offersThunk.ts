@@ -31,8 +31,8 @@ export const createOffer = createAsyncThunk<Offer, Partial<Offer>>(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          offerId: 0,
-          candidateId: offerData.candidateId,
+        //   offerId: 0,
+        userApplicationId: offerData.candidateId,
           jobId: offerData.jobId,
           baseSalary: offerData.baseSalary,
           bonus: offerData.bonus || 0,
@@ -57,9 +57,9 @@ export const createOffer = createAsyncThunk<Offer, Partial<Offer>>(
           status: offerData.status || 'Pending',
           flag: 'C',
           createdBy: '1', // TODO: Get from current user
-          createdDate: new Date().toISOString(),
+        //   createdDate: new Date().toISOString(),
           modifiedBy: '1', // TODO: Get from current user
-          modifiedDate: new Date().toISOString(),
+        //   modifiedDate: new Date().toISOString(),
         }),
       })
       
